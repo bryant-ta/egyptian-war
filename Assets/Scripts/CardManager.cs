@@ -9,38 +9,76 @@ public class CardManager : MonoBehaviour
     [SerializeField] List<Player> players = new List<Player>();
 
     public Card cardTemplate;
+    public Player playerTemplate;
+
+    bool slapped;
 
     void Awake()
     {
 
         CreateStdDeck();
+        Shuffle(deck);
 
         SetupGame();
 
+        foreach (Player player in players)
+        {
+            player.PrintHand();
+        }
+        PrintDeck(deck);
+    }
+
+    private void Update()
+    {
         
     }
 
     void SetupGame()
     {
-        
-
         // Ask for player names
         List<string> playerNames = new List<string>();
-        if (players.Count > 0)
-        {
-            foreach (Player player in players)
-            {
-                playerNames.Add(player.playerName);
-            }
-        }
-        
+        playerNames.Add("Bill");
+        playerNames.Add("Alice");
+
+        // Creating deck and shuffling
+        CreateStdDeck();
+        Shuffle(deck);
+
         players.Clear();
-        List<Card>[] splits = Split(numPlayers);
-        for (int i = 0; i < numPlayers; i++)
+        List<Card>[] splits = Split(deck, numPlayers);
+
+        // Adding player 1
+        Player player = Instantiate(playerTemplate);
+        players.Add(player);
+        players[0].Setup(playerNames[0], 0, this, splits[0]);
+
+        // Adding player 2
+        player = Instantiate(playerTemplate);
+        players.Add(player);
+        players[1].Setup(playerNames[1], 1, this, splits[1]);
+
+        //for (int i = 0; i < numPlayers; i++)
+        //{
+        //    Player player = Instantiate(playerTemplate);
+        //    players.Add(player);
+        //    players[i].Setup(playerNames[i], this, splits[i]);
+        //}
+    }
+
+    // pid = of player whose turn it is
+    void Turn(int pid)
+    {
+        foreach (Player player in players)
         {
-            players.Add(new Player());                      // THIS NOT GONNA WORK
-            players[i].Setup(playerNames[i], splits[i]);
+            player.isMyTurn = false;
         }
+        players[pid].isMyTurn = true;
+    }
+
+    // pid = of player who completed turn
+    public void nextTurn(int pid)
+    {
+        Turn((pid + 1) % numPlayers);
     }
 
     // Create 52 card deck (no jokers)
@@ -52,7 +90,6 @@ public class CardManager : MonoBehaviour
             {
                 Card card = Instantiate(cardTemplate, gameObject.transform);
                 card.Setup((SuitEnum)suit, (RankEnum)rank);
-                print(card.Name);
                 deck.Add(card);
             }
         }
@@ -60,11 +97,43 @@ public class CardManager : MonoBehaviour
 
     // Move card from deck Src to deck Dst
     // Returns index of moved card in dst deck
-    int MoveCard(Card card, List<Card> deckSrc, List<Card> deckDst)
+    void MoveCard(Card card, List<Card> deckSrc, List<Card> deckDst, int loc = -1)
     {
-        deckDst.Add(card);
+        if (loc < 0)
+        {
+            deckDst.Add(card);
+        }
+        else
+        {
+            deckDst.Insert(loc, card);
+        }
         deckSrc.Remove(card);
-        return deckDst.Count - 1;
+    }
+
+    public void Deal(List<Card> playerHand)
+    {
+        MoveCard(playerHand[0], playerHand, deck);
+    }
+
+    public void Slap(Player player)
+    {
+        // do slapping animation for each player
+
+        if (!slapped && deck[deck.Count-1].Rank == deck[deck.Count-2].Rank)
+        {
+            slapped = true;
+            player.hand.AddRange(deck);
+            deck.Clear();
+        }
+        else
+        {
+            Penalty(player);
+        }
+    }
+
+    void Penalty(Player player)
+    {
+        MoveCard(player.hand[0], player.hand, deck, 0);
     }
 
     void Shuffle(List<Card> _deck)
@@ -79,16 +148,17 @@ public class CardManager : MonoBehaviour
         }
     }
 
-    List<Card>[] Split(int divisions)
+    List<Card>[] Split(List<Card> _deck, int divisions)
     {
         List<Card>[] splits = new List<Card>[divisions];
-        //for (int i = 0; i < divisions; i++)
-        //{
-        //    splits[i] = new List<Card>();
-        //}
-        for (int i = 0; i < deck.Count; i++)
+        for (int i = 0; i < divisions; i++)
         {
-            splits[i % divisions].Add(deck[i]);
+            splits[i] = new List<Card>();
+        }
+        int deckSize = _deck.Count;
+        for (int i = 0; i < deckSize; i++)
+        {
+            MoveCard(_deck[0], _deck, splits[i % divisions]);
         }
         return splits;
     }
@@ -102,7 +172,7 @@ public class CardManager : MonoBehaviour
     {
         foreach (Card card in _deck)
         {
-            print(card.Name);
+            print("Deck : " + card.Name);
         }
     }
 }

@@ -27,8 +27,6 @@ public enum RankEnum
 
 public class Card : MonoBehaviour
 {
-    
-
     [SerializeField] SuitEnum suit;
     [SerializeField] RankEnum rank;
     [SerializeField] string cardName;
@@ -38,6 +36,8 @@ public class Card : MonoBehaviour
         suit = _suit;
         rank = _rank;
         cardName = "" + rank.ToString() +" of " + suit.ToString();
+        gameObject.name = cardName;
+        GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Card_Fronts/" + suit.ToString()[0] + (int)rank);
     }
 
     public SuitEnum Suit { get { return suit; } }
